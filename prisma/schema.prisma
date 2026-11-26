@@ -1,0 +1,146 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  phone         String?
+  role          Role      @default(USER)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String    @db.Text
+  shortDesc   String
+  category    String
+  price       Float
+  priceUnit   String    @default("per project")
+  duration    String
+  image       String?
+  features    String[]
+  available   Boolean   @default(true)
+  featured    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+
+  @@index([category])
+  @@index([slug])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  userId      String
+  serviceId   String
+  date        DateTime
+  timeSlot    String
+  status      BookingStatus @default(PENDING)
+  notes       String?       @db.Text
+  address     String
+  phone       String
+  totalPrice  Float?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service     Service       @relation(fields: [serviceId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([date])
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @db.Text
+  category    String
+  images      String[]
+  location    String?
+  area        String?
+  duration    String?
+  featured    Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([category])
+  @@index([featured])
+}
+
+model Testimonial {
+  id         String   @id @default(cuid())
+  authorName String
+  company    String?
+  content    String   @db.Text
+  rating     Int      @default(5)
+  image      String?
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
